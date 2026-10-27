@@ -3,130 +3,94 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>TasteBridge Groups — the taste diplomat for real-life plans</title>
-  <meta name="description" content="Plan a night out for 3–8 people. Qloo Taste AI finds common ground, detects taste conflicts, and builds a fair multi-stop itinerary." />
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e4572e'/%3E%3Cpath d='M5 21c4-9 8-9 11-4s7 5 11-4' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <title>TasteBridge Groups: a night out where nobody loses</title>
+  <meta name="description" content="Seat 2 to 8 friends at the table. Qloo Taste AI finds where your tastes clash, bridges them, and plans an evening where everyone gets a stop that's theirs." />
+  <meta name="theme-color" content="#0b3a6b" />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' fill='%230b3a6b'/%3E%3Cpath d='M3 22H29M6 22V12M26 22V12M6 12Q16 0 26 12' fill='none' stroke='%23edf4ff' stroke-width='2'/%3E%3C/svg%3E" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@500;700;800;900&family=Familjen+Grotesk:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/css/style.css" />
 </head>
 <body>
-  <header class="top">
-    <div class="brand">
-      <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><path d="M5 21c4-9 8-9 11-4s7 5 11-4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>
-      <div>
-        <h1>TasteBridge <span>Groups</span></h1>
-        <p>The taste diplomat for real-life plans · powered by Qloo Taste AI</p>
-      </div>
-    </div>
-    <div class="top-right">
-      <span id="modeBadge" class="badge">checking…</span>
-    </div>
+  <div id="xhair" aria-hidden="true"><i class="h"></i><i class="v"></i><i class="c tl"></i><i class="c tr"></i><i class="c bl"></i><i class="c br"></i></div>
+
+  <header class="mast">
+    <a class="mark" href="#plan" data-snap aria-label="TasteBridge Groups, top of page">
+      <svg viewBox="0 0 44 28" width="40" height="26" aria-hidden="true"><path d="M2 22H42M7 22V12M37 22V12M7 12Q22 -4 37 12M14 7V22M22 3V22M30 7V22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="square"/></svg>
+      <span>TasteBridge <em>Groups</em></span>
+    </a>
+    <nav id="nav" aria-label="Sheets">
+      <a href="#plan">The table</a>
+      <a href="#stress" data-needs-plan hidden>Stress</a>
+      <a href="#night" data-needs-plan hidden>The night</a>
+      <a href="#loads" data-needs-plan hidden>Loads</a>
+      <a href="#compare" hidden>Compare</a>
+      <a href="#duo">Two of you</a>
+    </nav>
+    <span id="mode" class="mode smp" role="status"><i></i><span>Checking</span></span>
   </header>
-
-  <nav class="tabs" role="tablist" aria-label="Views">
-    <button role="tab" data-tab="plan" class="tab on" aria-selected="true">Group planner</button>
-    <button role="tab" data-tab="compare" class="tab" aria-selected="false">With vs without Qloo</button>
-    <button role="tab" data-tab="pair" class="tab" aria-selected="false">Just two of you</button>
-  </nav>
-
-  <div id="banner" class="banner" hidden></div>
+  <p id="note" class="note" hidden></p>
 
   <main>
-    <!-- GROUP PLANNER + COMPARE share the form -->
-    <section id="view-plan" class="view">
-      <div class="layout">
-        <aside class="panel form" id="formPanel">
-          <div class="panel-head">
-            <h2>Who's coming?</h2>
-            <span class="muted" id="countLabel">0 / 8</span>
+    <section class="sheet hero" id="plan" data-sheet="Plan view">
+      <div class="hero-col">
+        <div class="hero-copy">
+          <h1 id="h1">A night out where nobody loses.</h1>
+          <p class="lede">Seat everyone at the table and tell us what each person loves. TasteBridge asks Qloo what you'd each enjoy, finds where you clash, and plans an evening where every one of you gets a stop that's yours.</p>
+          <p class="hint">Click a seat to edit a guest. Point at one to see what orbits them.</p>
+        </div>
+        <div class="go-row">
+          <button type="button" id="go" class="btn primary go"><span class="t">Plan the night</span><span class="sweep" aria-hidden="true"></span></button>
+          <p id="go-hint" class="go-hint" aria-live="polite"></p>
+        </div>
+        <div id="cable" class="cable" hidden aria-live="polite"></div>
+        <details class="titleblock" id="brief">
+          <summary data-snap><span id="brief-sum">New York</span><span class="edit">Edit details</span></summary>
+          <div class="tb-grid">
+            <label class="c c-city"><span>City</span><input id="city" value="New York" autocomplete="off" /></label>
+            <label class="c c-hood"><span>Neighborhood</span><input id="hood" placeholder="Anywhere" autocomplete="off" /></label>
+            <label class="c c-when"><span>Date and time</span><input id="when" type="datetime-local" /></label>
+            <div class="c c-budget"><span id="budget-l">Budget per stop</span><div id="budget" class="coins" role="group" aria-labelledby="budget-l"><button type="button" data-v="1" aria-label="Budget level 1 of 4">$</button><button type="button" data-v="2" aria-label="Budget level 2 of 4">$</button><button type="button" data-v="3" aria-label="Budget level 3 of 4">$</button><button type="button" data-v="4" aria-label="Budget level 4 of 4">$</button></div></div>
+            <fieldset class="c c-diet"><legend>Dietary needs</legend><div id="dietary" class="pills"><label class="pill"><input type="checkbox" value="vegetarian" />vegetarian</label><label class="pill"><input type="checkbox" value="vegan" />vegan</label><label class="pill"><input type="checkbox" value="halal" />halal</label><label class="pill"><input type="checkbox" value="gluten-free" />gluten-free</label><label class="pill"><input type="checkbox" value="kosher" />kosher</label></div></fieldset>
+            <fieldset class="c c-acc"><legend>Access</legend><div id="access" class="pills"><label class="pill"><input type="checkbox" value="wheelchair accessible" />step-free</label></div></fieldset>
+            <label class="c c-wind switch"><input type="checkbox" id="winddown" checked /><i></i><span>Finish with a wind-down stop</span></label>
+            <div class="c c-vibe"><span>Limits for the whole night</span><div id="vibes" class="chipbox"><input placeholder="e.g. no loud venues" maxlength="80" aria-label="Add a limit for the whole night, press Enter" autocomplete="off" /></div></div>
           </div>
-          <div id="people"></div>
-          <div class="row gap">
-            <button class="btn ghost" id="addPerson" type="button">+ Add person</button>
-            <button class="btn ghost" id="loadDemo" type="button">Load demo group</button>
-          </div>
-
-          <h2 class="mt">The plan</h2>
-          <div class="grid2">
-            <label>City<input id="city" value="New York" autocomplete="off" /></label>
-            <label>Neighborhood <em>(optional)</em><input id="hood" placeholder="e.g. East Village" autocomplete="off" /></label>
-            <label>Date &amp; time<input id="when" type="datetime-local" /></label>
-            <label class="span2">Budget per stop
-              <div class="seg" id="budget" role="group" aria-label="Budget">
-                <button type="button" data-v="1">$</button><button type="button" data-v="2">$$</button><button type="button" data-v="3" class="on">$$$</button><button type="button" data-v="4">$$$$</button>
-              </div>
-            </label>
-          </div>
-          <fieldset>
-            <legend>Dietary needs</legend>
-            <div class="chips-check" id="dietary">
-              <label><input type="checkbox" value="vegetarian" /> vegetarian</label>
-              <label><input type="checkbox" value="vegan" /> vegan</label>
-              <label><input type="checkbox" value="halal" /> halal</label>
-              <label><input type="checkbox" value="gluten-free" /> gluten-free</label>
-              <label><input type="checkbox" value="kosher" /> kosher</label>
-            </div>
-          </fieldset>
-          <fieldset>
-            <legend>Accessibility</legend>
-            <div class="chips-check" id="access">
-              <label><input type="checkbox" value="wheelchair accessible" /> step-free / wheelchair accessible</label>
-            </div>
-          </fieldset>
-          <label>Group vibe constraints <em>(Enter to add)</em>
-            <div class="chipbox" id="vibes"><input placeholder='e.g. "no loud venues", "outdoorsy"' /></div>
-          </label>
-          <label class="check"><input type="checkbox" id="winddown" checked /> Include a wind-down stop</label>
-
-          <div class="row gap mt">
-            <button class="btn primary" id="planBtn" type="button">Plan our night</button>
-            <button class="btn" id="compareBtn" type="button">Compare with / without Qloo</button>
-          </div>
-          <p class="fine">Qloo's API key stays on the server. Your tastes are only sent to this app's API and to Qloo.</p>
-        </aside>
-
-        <section class="results" id="results" aria-live="polite">
-          <div class="empty">
-            <h2>Everyone gets a win.</h2>
-            <p>Add 3–8 people with a few taste anchors each — artists, films, shows, foods, brands, vibes. TasteBridge resolves them to real Qloo entities, maps where your tastes overlap and clash, then builds an itinerary where nobody gets steamrolled.</p>
-            <p><button class="btn primary" id="emptyDemo" type="button">Try the demo group</button></p>
-          </div>
-        </section>
+        </details>
+        <div class="mini-links"><button type="button" id="demo" class="link">Load the demo guests</button><button type="button" id="clear" class="link">Start with an empty table</button></div>
       </div>
+      <div id="scene" aria-label="The table, with every guest seated around it"></div>
     </section>
 
-    <section id="view-compare" class="view" hidden>
-      <div id="compareOut" class="results wide">
-        <div class="empty"><h2>Same request, two planners.</h2><p>Fill in the group on the planner tab, then press <b>Compare with / without Qloo</b>. We run the identical request through a generic recommender and through the Qloo-grounded agent and score both.</p>
-        <p><button class="btn primary" id="goPlanner" type="button">Go to planner</button></p></div>
-      </div>
-    </section>
+    <div id="results" hidden></div>
+    <section class="sheet" id="compare" data-sheet="Two drawings" hidden></section>
 
-    <section id="view-pair" class="view" hidden>
-      <div class="layout">
-        <aside class="panel form">
-          <h2>Common ground for two</h2>
-          <p class="muted">The original TasteBridge flow — what would both of you love, across films, music, shows, books, games and brands?</p>
-          <div class="grid2">
-            <label>Person A<input id="pairNameA" value="Alex" /></label>
-            <label>Person B<input id="pairNameB" value="Jordan" /></label>
-            <label class="span2">A's anchors <em>(comma separated)</em><textarea id="pairA" rows="2">Radiohead, Parasite, Stardew Valley</textarea></label>
-            <label class="span2">B's anchors <em>(comma separated)</em><textarea id="pairB" rows="2">Taylor Swift, Barbie, Animal Crossing</textarea></label>
-            <label class="span2">City <em>(optional, adds places)</em><input id="pairCity" value="New York" /></label>
-          </div>
-          <div class="row gap mt"><button class="btn primary" id="pairBtn" type="button">Find common ground</button></div>
-        </aside>
-        <section class="results" id="pairOut"><div class="empty"><p>Two people, different tastes? Press the button.</p></div></section>
+    <section class="sheet duo" id="duo" data-sheet="Span between two">
+      <header class="sh"><h2>Just the two of you?</h2><p>The original TasteBridge: give each person a few favourites and see what you'd both love, across films, shows, music, books, games and brands.</p></header>
+      <div class="duo-grid">
+        <form id="duoForm" class="duo-form" autocomplete="off">
+          <div class="two"><label><span>First person</span><input id="duoNameA" value="Alex" maxlength="40" /></label><label><span>Second person</span><input id="duoNameB" value="Jordan" maxlength="40" /></label></div>
+          <label><span>What <b class="a">they</b> love</span><textarea id="duoA" rows="2">Radiohead, Parasite, Stardew Valley</textarea></label>
+          <label><span>What <b class="b">they</b> love</span><textarea id="duoB" rows="2">Taylor Swift, Barbie, Animal Crossing</textarea></label>
+          <label><span>City, to include places</span><input id="duoCity" value="New York" maxlength="80" /></label>
+          <button id="duoGo" class="btn primary" type="submit"><span class="t">Find common ground</span></button>
+        </form>
+        <div id="duoScene" aria-label="Two seats facing each other"></div>
       </div>
+      <div id="duoOut" class="duo-out" hidden></div>
+      <footer class="tb"><div><small>Sheet</small><b>Span between two</b></div><div><small>Source</small><b>Qloo Taste AI</b></div></footer>
     </section>
   </main>
 
-  <footer>
-    <span>Built for the Qloo Agentic Hackathon · MIT licensed ·</span>
-    <a href="https://github.com/" id="repoLink" target="_blank" rel="noopener">source on GitHub</a>
+  <footer class="end">
+    <p>Built for the Qloo Agentic Hackathon. Venue and taste data from Qloo. Your key never leaves the server.</p>
+    <a href="https://github.com/jenish1345/TasteBridge-Groups" target="_blank" rel="noopener noreferrer" data-snap>Source on GitHub</a>
   </footer>
-  <script src="/app.js" type="module"></script>
+
+  <div id="editor" class="editor" role="dialog" aria-label="Edit guest" hidden></div>
+  <div id="tip" class="tip" role="tooltip" hidden></div>
+  <div id="toast" class="toast" role="alert" hidden></div>
+  <script type="module" src="/js/main.js"></script>
 </body>
 </html>

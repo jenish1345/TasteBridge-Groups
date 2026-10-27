@@ -109,6 +109,10 @@ Dietary/accessibility needs are *verified* against Qloo tags when possible; unve
 
 **Rebalance:** replace one stop with the best feasible alternative such that nobody loses a personal win and mean fairness drops ≤ 0.03 (`mean score + 0.5·lowest person's average` is the objective). Repeated rebalances cycle through alternatives.
 
+## The interface
+
+The UI is a cyanotype drawing set (no framework, no build step; plain ES modules in `public/`). The metaphor is the product's name: a table seen from above, conflicts drawn as **cables under tension**, resolved into **truss spans**, and the evening drawn as a **bridge elevation** with one pier per stop. The plan streams in live from `/api/plan-stream`: each taste lifts off its seat and lands on the table as Qloo resolves it. Respects `prefers-reduced-motion`; seats and piers are real buttons with keyboard support.
+
 ## Evaluation (measured, not claimed)
 
 `npm run eval` plans 60 seeded random groups (2–8 people, random anchors, hard no's, key guests, three cities, budgets) in SAMPLE DATA mode and re-checks every chosen venue against the hard rules, independently of the selection code. `npm test` runs a 25-group version as a property test.
