@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>TasteBridge Groups — the taste diplomat for real-life plans</title>
+  <meta name="description" content="Plan a night out for 3–8 people. Qloo Taste AI finds common ground, detects taste conflicts, and builds a fair multi-stop itinerary." />
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23e4572e'/%3E%3Cpath d='M5 21c4-9 8-9 11-4s7 5 11-4' fill='none' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3C/svg%3E" />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">
+      <svg viewBox="0 0 32 32" width="30" height="30" aria-hidden="true"><rect width="32" height="32" rx="8" fill="var(--accent)"/><path d="M5 21c4-9 8-9 11-4s7 5 11-4" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/></svg>
+      <div>
+        <h1>TasteBridge <span>Groups</span></h1>
+        <p>The taste diplomat for real-life plans · powered by Qloo Taste AI</p>
+      </div>
+    </div>
+    <div class="top-right">
+      <span id="modeBadge" class="badge">checking…</span>
+    </div>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Views">
+    <button role="tab" data-tab="plan" class="tab on" aria-selected="true">Group planner</button>
+    <button role="tab" data-tab="compare" class="tab" aria-selected="false">With vs without Qloo</button>
+    <button role="tab" data-tab="pair" class="tab" aria-selected="false">Just two of you</button>
+  </nav>
+
+  <div id="banner" class="banner" hidden></div>
+
+  <main>
+    <!-- GROUP PLANNER + COMPARE share the form -->
+    <section id="view-plan" class="view">
+      <div class="layout">
+        <aside class="panel form" id="formPanel">
+          <div class="panel-head">
+            <h2>Who's coming?</h2>
+            <span class="muted" id="countLabel">0 / 8</span>
+          </div>
+          <div id="people"></div>
+          <div class="row gap">
+            <button class="btn ghost" id="addPerson" type="button">+ Add person</button>
+            <button class="btn ghost" id="loadDemo" type="button">Load demo group</button>
+          </div>
+
+          <h2 class="mt">The plan</h2>
+          <div class="grid2">
+            <label>City<input id="city" value="New York" autocomplete="off" /></label>
+            <label>Neighborhood <em>(optional)</em><input id="hood" placeholder="e.g. East Village" autocomplete="off" /></label>
+            <label>Date &amp; time<input id="when" type="datetime-local" /></label>
+            <label class="span2">Budget per stop
+              <div class="seg" id="budget" role="group" aria-label="Budget">
+                <button type="button" data-v="1">$</button><button type="button" data-v="2">$$</button><button type="button" data-v="3" class="on">$$$</button><button type="button" data-v="4">$$$$</button>
+              </div>
+            </label>
+          </div>
+          <fieldset>
+            <legend>Dietary needs</legend>
+            <div class="chips-check" id="dietary">
+              <label><input type="checkbox" value="vegetarian" /> vegetarian</label>
+              <label><input type="checkbox" value="vegan" /> vegan</label>
+              <label><input type="checkbox" value="halal" /> halal</label>
+              <label><input type="checkbox" value="gluten-free" /> gluten-free</label>
+              <label><input type="checkbox" value="kosher" /> kosher</label>
+            </div>
+          </fieldset>
+          <fieldset>
+            <legend>Accessibility</legend>
+            <div class="chips-check" id="access">
+              <label><input type="checkbox" value="wheelchair accessible" /> step-free / wheelchair accessible</label>
+            </div>
+          </fieldset>
+          <label>Group vibe constraints <em>(Enter to add)</em>
+            <div class="chipbox" id="vibes"><input placeholder='e.g. "no loud venues", "outdoorsy"' /></div>
+          </label>
+          <label class="check"><input type="checkbox" id="winddown" checked /> Include a wind-down stop</label>
+
+          <div class="row gap mt">
+            <button class="btn primary" id="planBtn" type="button">Plan our night</button>
+            <button class="btn" id="compareBtn" type="button">Compare with / without Qloo</button>
+          </div>
+          <p class="fine">Qloo's API key stays on the server. Your tastes are only sent to this app's API and to Qloo.</p>
+        </aside>
+
+        <section class="results" id="results" aria-live="polite">
+          <div class="empty">
+            <h2>Everyone gets a win.</h2>
+            <p>Add 3–8 people with a few taste anchors each — artists, films, shows, foods, brands, vibes. TasteBridge resolves them to real Qloo entities, maps where your tastes overlap and clash, then builds an itinerary where nobody gets steamrolled.</p>
+            <p><button class="btn primary" id="emptyDemo" type="button">Try the demo group</button></p>
+          </div>
+        </section>
+      </div>
+    </section>
+
+    <section id="view-compare" class="view" hidden>
+      <div id="compareOut" class="results wide">
+        <div class="empty"><h2>Same request, two planners.</h2><p>Fill in the group on the planner tab, then press <b>Compare with / without Qloo</b>. We run the identical request through a generic recommender and through the Qloo-grounded agent and score both.</p>
+        <p><button class="btn primary" id="goPlanner" type="button">Go to planner</button></p></div>
+      </div>
+    </section>
+
+    <section id="view-pair" class="view" hidden>
+      <div class="layout">
+        <aside class="panel form">
+          <h2>Common ground for two</h2>
+          <p class="muted">The original TasteBridge flow — what would both of you love, across films, music, shows, books, games and brands?</p>
+          <div class="grid2">
+            <label>Person A<input id="pairNameA" value="Alex" /></label>
+            <label>Person B<input id="pairNameB" value="Jordan" /></label>
+            <label class="span2">A's anchors <em>(comma separated)</em><textarea id="pairA" rows="2">Radiohead, Parasite, Stardew Valley</textarea></label>
+            <label class="span2">B's anchors <em>(comma separated)</em><textarea id="pairB" rows="2">Taylor Swift, Barbie, Animal Crossing</textarea></label>
+            <label class="span2">City <em>(optional, adds places)</em><input id="pairCity" value="New York" /></label>
+          </div>
+          <div class="row gap mt"><button class="btn primary" id="pairBtn" type="button">Find common ground</button></div>
+        </aside>
+        <section class="results" id="pairOut"><div class="empty"><p>Two people, different tastes? Press the button.</p></div></section>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <span>Built for the Qloo Agentic Hackathon · MIT licensed ·</span>
+    <a href="https://github.com/" id="repoLink" target="_blank" rel="noopener">source on GitHub</a>
+  </footer>
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

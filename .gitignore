@@ -1,0 +1,9 @@
+node_modules
+.env
+.env.local
+.vercel
+.qloo-cache
+dist
+*.log
+.DS_Store
+.claude
