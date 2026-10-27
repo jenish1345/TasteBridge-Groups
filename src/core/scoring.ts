@@ -28,6 +28,8 @@ export const COVER_HI = 0.65;
 export const ABSENT_Q = 0.2;
 export const WIN_MIN = 0.65;
 export const WIN_TOP = 2;
+/** A win must also be a real lead: this person's fit beats the mean fit of everyone else at the stop by at least this much. */
+export const WIN_LEAD = 0.05;
 /** pref * pos at or below this for a key person is a strong dislike (e.g. -0.6 * 0.6) */
 export const VETO_PRODUCT = -0.36;
 
@@ -228,6 +230,7 @@ export function scoreSlot(cands: Candidate[], ctx: ScoringContext): ScoredCandid
     ...evaluate(c, ctx),
     breakdown: computeBreakdown(c.a, loadsFor(c)),
     winFor: [],
+    closeFor: [],
   }));
   markWins(scored);
   return scored.sort((x, y) => y.breakdown.score - x.breakdown.score);
@@ -240,9 +243,17 @@ export function isViable(c: ScoredCandidate): boolean {
 export function markWins(scored: ScoredCandidate[]): void {
   const viable = scored.filter(isViable);
   const ids = viable[0] ? Object.keys(viable[0].a) : [];
-  for (const s of scored) s.winFor = [];
+  for (const s of scored) { s.winFor = []; s.closeFor = []; }
+  const lead = (c: ScoredCandidate, id: string) => {
+    const others = ids.filter((x) => x !== id).map((x) => c.a[x]);
+    return others.length ? c.a[id] - others.reduce((a, b) => a + b, 0) / others.length : 1;
+  };
   for (const id of ids) {
     const ranked = [...viable].sort((x, y) => y.a[id] - x.a[id]).slice(0, WIN_TOP);
-    for (const c of ranked) if (c.a[id] >= WIN_MIN) c.winFor.push(id);
+    for (const c of ranked) {
+      if (c.a[id] < WIN_MIN) continue;
+      // an exclusive win needs a real lead; otherwise it's only their closest fit
+      if (lead(c, id) >= WIN_LEAD) c.winFor.push(id); else c.closeFor.push(id);
+    }
   }
 }

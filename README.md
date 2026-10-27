@@ -105,7 +105,7 @@ score(c) = group_coverage · 0.5  +  minimum_individual · 0.3  +  conflict_pena
 **Never recommend what a key person strongly dislikes (if an alternative exists).** A candidate is vetoed if (a) anyone's explicit hard no matches it, (b) a *key guest* (★) has `pref·pos ≤ −0.36` on any axis, (c) it exceeds the budget or breaks a group vibe like "no loud venues". If a stop has no viable candidate, constraints relax in order (unverifiable dietary → key-guest axis veto → vibe/budget) and the stop carries a visible warning.
 Dietary/accessibility needs are *verified* against Qloo tags when possible; unverifiable ones are only flagged ("confirm vegan options with the venue") — never silently assumed.
 
-**Personal win:** person *i* wins a stop if `a_i ≥ 0.65` and it is in their top 2 viable venues for that stop. After picking each stop's best venue (near-ties broken toward the most conflict-neutral one), anyone without a win triggers a swap that costs ≤ 0.12 score and keeps everybody ≥ 0.30; remaining people get an *Encore* stop.
+**Personal win (exclusive) and closest fit.** Person *i* has a *personal win* at a stop if `a_i ≥ 0.65`, it is among their top 2 viable venues for that stop, **and** they beat the mean fit of everyone else there by at least 0.05 — so a stop that everyone likes equally is *not* anyone's win. After picking each stop's best venue (near-ties broken toward the most conflict-neutral one), anyone without a win triggers a swap that costs ≤ 0.12 score and keeps everybody ≥ 0.30; remaining people get one *Encore* stop. If someone still has no exclusive win (common on live Qloo data, where affinities cluster tightly), the plan shows their **closest fit** instead and says so; it never claims a win it doesn't have.
 
 **Rebalance:** replace one stop with the best feasible alternative such that nobody loses a personal win and mean fairness drops ≤ 0.03 (`mean score + 0.5·lowest person's average` is the objective). Repeated rebalances cycle through alternatives.
 
@@ -117,17 +117,17 @@ The UI is a cyanotype drawing set (no framework, no build step; plain ES modules
 
 `npm run eval` plans 60 seeded random groups (2–8 people, random anchors, hard no's, key guests, three cities, budgets) in SAMPLE DATA mode and re-checks every chosen venue against the hard rules, independently of the selection code. `npm test` runs a 25-group version as a property test.
 
-| Metric (60 groups · 241 stops) | TasteBridge | Naive "highest average affinity" ranker |
+| Metric (60 groups · 254 stops) | TasteBridge | Naive "highest average affinity" ranker |
 |---|---|---|
-| Groups where **everyone got a personal win** | **100%** | not tracked |
-| Hard-rule violations (hard no / key-guest veto / budget / vibe) | **0** | 20 stops (8.3%) |
-| (person, stop) pairs with < 40% fit | **2** | 8 |
-| Lowest person's fit, on stops where the naive pick was legal | **62.9%** | 61.9% |
-| Stops where fairness-aware scoring changed the pick | 45.6% | — |
+| Groups where everyone has an **exclusive personal win** | **96.7%** | not tracked |
+| Groups where everyone has a win **or a closest fit** | **100%** | not tracked |
+| Hard-rule violations (hard no / key-guest veto / budget / vibe), checked by an **independent** checker | **0** | 21 stops (8.3%) |
+| (person, stop) pairs with < 40% fit | **1** | 8 |
+| Lowest person's fit, on stops where the naive pick was legal | 61.4% | 61.7% |
+| People sharing each "personal win" (1 = exclusive) | 1.69 | not tracked |
+| Stops where fairness-aware scoring changed the pick | 51.2% | — |
 
-Be careful how you read this: the big, robust win is *rule-keeping and not leaving anyone behind* (and guaranteed wins). The average lowest-person fit improves only about a point — fairness scoring mostly reshuffles *who* is served rather than lifting everyone. Numbers are from fixtures, so they show the algorithm's behaviour, not Qloo's data quality. 
-
-**Live Qloo check** (`npm run eval -- --live --n=3`: only 3 groups / 12 stops, so treat it as a sanity check, not a benchmark): everyone got a personal win, 0 hard-rule violations, and a naive ranker would have broken a rule at 7 of 12 stops — mostly picking venues Qloo lists as closed at the planned time. On stops where the naive pick was legal, lowest-person fit was identical (77.1% vs 77.1%). Qloo's listed hours are sometimes wrong (e.g. well-known weekend venues listed as closed), which is why ruled-out reasons say "per Qloo's listed hours".
+Read this carefully: the robust wins are *rule-keeping*, *fewer people left badly served* and *honest, mostly exclusive wins*. **Average lowest-person fit is not better than a naive ranker** (61.4% vs 61.7%): making wins exclusive trades a little average fit for meaning. The rule check is a separately written checker (`independentBreaches` in `src/eval.ts`) that shares the venue evidence but not the planner's veto code. It caught a real difference during development (a comedy club read as "loud" from the word *club*), which is also a known weakness of the keyword model. Numbers come from fixtures, so they show the algorithm's behaviour, not Qloo's data quality. **Live Qloo check** (`npm run eval -- --live --n=3`: only 3 groups / 12 stops, run before wins were made exclusive, so treat it as a sanity check, not a benchmark): everyone got a win, 0 hard-rule violations, and a naive ranker would have broken a rule at 7 of 12 stops — mostly picking venues Qloo lists as closed at the planned time. On stops where the naive pick was legal, lowest-person fit was identical (77.1% vs 77.1%). Qloo's listed hours are sometimes wrong (e.g. well-known weekend venues listed as closed), which is why ruled-out reasons say "per Qloo's listed hours".
 
 ## Local setup
 
@@ -139,7 +139,7 @@ npm start                   # http://localhost:3000
 ```
 
 ```bash
-npm test                    # 60 tests: resolution, scoring, conflicts, itinerary, Qloo client, API
+npm test                    # 72 tests: resolution, scoring, conflicts, itinerary, hours, Qloo client, API, property checks
 npm run typecheck
 ```
 

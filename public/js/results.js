@@ -39,11 +39,11 @@ export class Results {
 
   #verdict() {
     const p = this.plan, m = p.metrics, n = p.profile.people.length;
-    const winners = n - m.peopleWithoutWin.length;
+    const winners = n - m.peopleWithoutExclusive.length;
     const relaxed = p.itinerary.filter((s) => s.warnings.some((w) => w.startsWith('Relaxed'))).length;
     const conflicts = p.profile.conflicts.filter((c) => c.level !== 'low').length;
     const lines = [
-      winners === n ? `Everyone has a stop that's theirs.` : `${winners} of ${n} people have a stop that's theirs.`,
+      winners === n ? `Everyone has a stop that's theirs.` : m.peopleWithoutWin.length ? `${winners} of ${n} people have a stop that's theirs.` : `${winners} of ${n} people have a stop that's theirs, and the rest get their closest fit.`,
       relaxed ? `${relaxed} stop${relaxed > 1 ? 's' : ''} had to relax a rule because nothing else fit.` : `Nothing anyone ruled out made it into the plan.`,
       conflicts ? `${conflicts} taste conflict${conflicts > 1 ? 's were' : ' was'} bridged.` : 'The table is in agreement. No major conflicts.',
     ];
@@ -216,8 +216,8 @@ export class Results {
     if (this.tab === 'serves') {
       const reasons = Object.fromEntries(s.serves.map((x) => [x.personId, x.reason]));
       const rows = s.evidence.affinitySignals.slice().sort((a, b) => b.individual - a.individual).map((a) => {
-        const w = who[a.personId] || { name: a.personId, c: '#fff', i: 0 }; const win = reasons[a.personId]?.startsWith('Personal win');
-        return `<li class="${win ? 'win' : ''}" style="--c:${w.c}"><span class="av" style="--h:${HATCH[w.i % 8]}deg">${esc(initial(w.name))}</span><div><b>${esc(w.name)}${win ? '<em>Personal win</em>' : ''}</b><p>${esc((reasons[a.personId] || `Fits at ${pct(a.individual)}.`).replace(/^Personal win\.\s*/, ''))}</p><div class="gauge"><i style="--v:${a.individual}"></i></div></div><strong>${pct(a.individual)}</strong></li>`;
+        const w = who[a.personId] || { name: a.personId, c: '#fff', i: 0 }; const win = reasons[a.personId]?.startsWith('Personal win'); const close = reasons[a.personId]?.startsWith('Closest to theirs');
+        return `<li class="${win ? 'win' : ''}" style="--c:${w.c}"><span class="av" style="--h:${HATCH[w.i % 8]}deg">${esc(initial(w.name))}</span><div><b>${esc(w.name)}${win ? '<em>Personal win</em>' : close ? '<em class="close">Closest fit</em>' : ''}</b><p>${esc((reasons[a.personId] || `Fits at ${pct(a.individual)}.`).replace(/^(Personal win|Closest to theirs)\.\s*/, ''))}</p><div class="gauge"><i style="--v:${a.individual}"></i></div></div><strong>${pct(a.individual)}</strong></li>`;
       }).join('');
       return `<ul class="serve-list">${rows}</ul>`;
     }

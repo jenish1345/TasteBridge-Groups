@@ -213,8 +213,10 @@ export interface ScoredCandidate extends Candidate {
   /** Requested dietary/accessibility needs the venue's tags confirm / cannot confirm */
   verified: string[];
   unverified: string[];
-  /** Persons for whom this is a "personal win" */
+  /** Persons for whom this is an exclusive "personal win" (a real lead over the rest of the table) */
   winFor: string[];
+  /** Persons whose best-fitting stops include this one but without an exclusive lead ("closest fit") */
+  closeFor: string[];
 }
 
 export interface ItineraryStop {
@@ -278,7 +280,12 @@ export interface PlanMetrics {
   minPersonAvg: number;
   minPersonId: string;
   equity: number; // 1 - gini over per-person avg affinity
-  winsByPerson: Record<string, string[]>; // personId -> stop titles
+  winsByPerson: Record<string, string[]>; // personId -> stops that are exclusively theirs
+  /** personId -> stops that are their closest fit, for people with no exclusive win */
+  closeByPerson: Record<string, string[]>;
+  /** people with no exclusive win (they may still have a closest fit) */
+  peopleWithoutExclusive: string[];
+  /** people with neither: the guarantee failed for them */
   peopleWithoutWin: string[];
 }
 

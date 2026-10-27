@@ -37,7 +37,7 @@ export function formatPlan(r: PlanResult, opts: { evidence?: boolean; trace?: bo
   const a = r.audit;
   if (a) out.push('', `Fairness audit vs a naive "highest average affinity" ranker: it would have chosen differently at ${a.stopsChanged}/${a.stops} stops, broken a hard rule at ${a.naiveViolations}, and left people below 40% fit ${a.poorFitsNaive}× (this plan: ${a.poorFitsOurs}×); on the ${a.comparableStops} stops where its pick was legal, lowest-person fit is ${pct(a.avgMinAffinityNaive)} (naive) vs ${pct(a.avgMinAffinityOurs)} (this plan).`);
   out.push('', 'Personal wins:');
-  for (const [id, stops] of Object.entries(r.metrics.winsByPerson)) out.push(`  - ${who[id]}: ${stops.length ? stops.join(', ') : '(none yet)'}`);
+  for (const [id, stops] of Object.entries(r.metrics.winsByPerson)) { const close = r.metrics.closeByPerson?.[id] ?? []; out.push(`  - ${who[id]}: ${stops.length ? stops.join(', ') : close.length ? `closest fit: ${close.join(', ')}` : '(none yet)'}`); }
   if (r.warnings.length) out.push('', 'Warnings:', ...r.warnings.map((w) => `  - ${w}`));
   if (opts.trace) out.push('', 'Agent trace:', ...r.trace.map((t) => `  ${String(t.t).padStart(5)}ms ${t.phase.padEnd(10)} ${t.message}`));
   return out.join('\n');

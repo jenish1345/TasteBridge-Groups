@@ -71,11 +71,11 @@ export function rebalance(s: SessionState, target?: StopKey): { session: Session
     .flatMap((k) => current.build.feasible[k] ?? [])
     .filter((c) => !usedIds.has(c.entity.id) && !(s.rejected?.[tgt.key] ?? []).includes(c.entity.id));
 
-  const oldNoWin = new Set(before.peopleWithoutWin);
+  const oldNoWin = new Set(before.peopleWithoutExclusive);
   const evaluated = options.map((c) => {
     const picks = current.picks.map((p) => (p === tgt ? { key: p.key, c } : p));
     const m = planMetrics(picks, s.profiles);
-    const preserved = m.peopleWithoutWin.every((id) => oldNoWin.has(id));
+    const preserved = m.peopleWithoutExclusive.every((id) => oldNoWin.has(id));
     return { c, picks, m, preserved, obj: objective(m) };
   });
 

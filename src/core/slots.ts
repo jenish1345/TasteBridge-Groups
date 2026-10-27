@@ -42,19 +42,24 @@ const NOT_A_VENUE = /grocery|supermarket|pharmacy|convenience store|department s
  * seating", "lounge bar") — reading all of them makes every restaurant look like every kind of stop. So we read only the
  * category-type families plus the name, and the `setting` family (rooftop/waterfront) for the wind-down check.
  */
-function classifyText(e: QlooEntity): { core: string; setting: string } {
-  const core = [e.name, ...e.tags.filter((t) => /^urn:tag:(genre|category|cuisine|dining|offerings|specialty_dish)/.test(t.id)).map((t) => t.name)].join(' ').toLowerCase();
+function classifyText(e: QlooEntity): { core: string; strict: string; setting: string } {
+  // "dinner theater" is a restaurant format, not a theatre; strip it so it can't make a restaurant look like an activity
+  const clean = (x: string) => x.toLowerCase().replace(/dinner theat(er|re)/g, '');
+  const core = clean([e.name, ...e.tags.filter((t) => /^urn:tag:(genre|category|cuisine|dining|offerings|specialty_dish)/.test(t.id)).map((t) => t.name)].join(' '));
+  // category-only text: restaurants carry "Cocktails"/"Hard liquor" under offerings, which must not make them a drinks stop
+  const strict = clean([e.name, ...e.tags.filter((t) => /^urn:tag:(genre|category)/.test(t.id)).map((t) => t.name)].join(' '));
   const setting = e.tags.filter((t) => /^urn:tag:setting/.test(t.id)).map((t) => t.name).join(' ').toLowerCase();
-  return { core, setting };
+  return { core, strict, setting };
 }
 
 /** Which itinerary slots can this place fill? (A place may fit more than one.) */
 export function slotsOf(e: QlooEntity): SlotId[] {
-  const { core, setting } = classifyText(e);
+  const { core, strict, setting } = classifyText(e);
   if (NOT_A_VENUE.test(core)) return [];
   const restaurantTag = e.tags.some((t) => /^urn:tag:(genre|category):place:restaurant/.test(t.id) || /restaurant/i.test(t.name));
   const food = restaurantTag || FOOD.test(core);
-  const strongDrink = DRINK_STRONG.test(core) || e.tags.some((t) => /^urn:tag:(genre|category):place:(bar|cocktail|pub|brewery|night_?club|coffee|cafe|dessert)/.test(t.id));
+  // a restaurant is only also a drinks stop if its *category* says so (cocktail bar, brewery...); otherwise any text will do
+  const strongDrink = DRINK_STRONG.test(food ? strict : core) || e.tags.some((t) => /^urn:tag:(genre|category):place:(bar|cocktail|pub|brewery|night_?club|coffee|cafe|dessert)/.test(t.id));
   const foodPrimary = food && !NON_FOOD_IDENTITY.test(core);
   const out: SlotId[] = [];
   if (food) out.push('food');

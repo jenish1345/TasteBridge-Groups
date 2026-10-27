@@ -30,8 +30,8 @@ describe('itinerary generation (agent end-to-end, sample data)', () => {
 
   it('gives every person at least one personal win', async () => {
     const r = await run();
-    expect(r.metrics.peopleWithoutWin).toEqual([]);
-    for (const wins of Object.values(r.metrics.winsByPerson)) expect(wins.length).toBeGreaterThan(0);
+    expect(r.metrics.peopleWithoutWin).toEqual([]); // nobody is left with neither a win nor a closest fit
+    for (const [id, wins] of Object.entries(r.metrics.winsByPerson)) expect(wins.length + r.metrics.closeByPerson[id].length).toBeGreaterThan(0);
   });
 
   it('never uses the same venue twice and respects budget + hard no\'s', async () => {
@@ -177,5 +177,36 @@ describe('slot classification on live-shaped entities', () => {
   });
   it('drops non-venues such as grocery stores', () => {
     expect(slotsOf(e('Whole Foods Market', [t('urn:tag:genre:place:health_food_store', 'Health food store'), t('urn:tag:genre:place:grocery', 'Grocery store')]))).toEqual([]);
+  });
+});
+
+describe('classification regressions from live data', () => {
+  const t = (id: string, name: string) => ({ id, name });
+  const e = (name: string, tags: { id: string; name: string }[]) => ({ id: name, name, type: 'urn:entity:place', tags, source: 'qloo-live' as const });
+  it('a Korean BBQ restaurant with cocktail/liquor offerings is a restaurant, not a drinks stop', () => {
+    const r = e('Jongro BBQ', [t('urn:tag:genre:place:restaurant:korean', 'Korean restaurant'), t('urn:tag:offerings:place:cocktails', 'Cocktails'), t('urn:tag:offerings:place:hard_liquor', 'Hard liquor'), t('urn:tag:amenity:qloo:alcohol', 'Alcohol')]);
+    expect(slotsOf(r)).toEqual(['food']);
+  });
+  it('a dinner-theater restaurant is not an activity', () => {
+    const r = e('Joanne Trattoria', [t('urn:tag:genre:place:restaurant:italian', 'Italian restaurant'), t('urn:tag:category:place:dinner_theater', 'Dinner theater')]);
+    expect(slotsOf(r)).toEqual(['food']);
+  });
+  it('a restaurant that is genuinely also a cocktail bar can still be a drinks stop', () => {
+    const r = e('Midnight Cowboy', [t('urn:tag:genre:place:restaurant', 'Restaurant'), t('urn:tag:category:place:cocktail_bar', 'Cocktail bar')]);
+    expect(slotsOf(r)).toEqual(expect.arrayContaining(['food', 'drink']));
+  });
+});
+
+describe('personal wins are exclusive', () => {
+  it('nobody "wins" a stop everyone likes equally', async () => {
+    const { markWins } = await import('../src/core/scoring.js');
+    const mk = (a: Record<string, number>) => ({ entity: { id: 'x', name: 'x', type: 'urn:entity:place', tags: [], source: 'sample' as const }, slot: 'food' as const, a, qloo: {}, pos: { volume: 0, spice: 0, scene: 0, novelty: 0, price: 0 }, breakdown: {} as any, vetoes: [], verified: [], unverified: [], winFor: [] as string[], closeFor: [] as string[] });
+    const everyoneLikesIt = mk({ a: 0.8, b: 0.8, c: 0.8 });
+    markWins([everyoneLikesIt]);
+    expect(everyoneLikesIt.winFor).toEqual([]); // not exclusive...
+    expect(everyoneLikesIt.closeFor.sort()).toEqual(['a', 'b', 'c']); // ...but it is everyone's closest fit
+    const aLovesIt = mk({ a: 0.9, b: 0.6, c: 0.6 });
+    markWins([aLovesIt]);
+    expect(aLovesIt.winFor).toEqual(['a']);
   });
 });

@@ -20,9 +20,10 @@ checks.push(['no sample fallbacks', r.stats.fallbacks === 0, `${r.stats.fallback
 checks.push(['no request failures', r.stats.failures === 0, `${r.stats.failures}`]);
 checks.push(['every anchor resolved', r.unresolved.length === 0, r.unresolved.map((u) => u.anchor).join(', ') || 'all']);
 checks.push(['4 stops', r.itinerary.length >= 4, `${r.itinerary.length}`]);
-checks.push([`every venue is in ${city}`, r.itinerary.every((s) => inCity({ ...r.session.pools[s.slot === 'encore' ? 'drink' : s.slot]?.find((c) => c.entity.id === s.place.id)!.entity }, city))]);
+const poolEntity = (id: string) => Object.values(r.session.pools).flat().find((c) => c.entity.id === id)?.entity;
+checks.push([`every venue is in ${city}`, r.itinerary.every((s) => { const e = poolEntity(s.place.id); return !!e && inCity(e, city); })]);
 checks.push(['every stop has Qloo entity id + tags', r.itinerary.every((s) => s.evidence.qlooEntityIds[0] && s.evidence.candidateTags.length > 0)]);
-checks.push(['everyone has a personal win', r.metrics.peopleWithoutWin.length === 0]);
+checks.push(['everyone has a personal win or a closest fit', r.metrics.peopleWithoutWin.length === 0, `${r.metrics.peopleWithoutExclusive.length} without an exclusive win`]);
 checks.push([`finished in under 60s (Vercel limit)`, secs < 60, `${secs.toFixed(1)}s`]);
 const withHours = r.itinerary.filter((s) => s.place.openNote).length;
 checks.push(['opening hours available for some stops', withHours > 0, `${withHours}/${r.itinerary.length}`]);

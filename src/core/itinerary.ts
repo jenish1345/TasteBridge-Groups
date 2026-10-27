@@ -186,14 +186,21 @@ export function planMetrics(picks: Pick[], profiles: PersonProfile[]): PlanMetri
   const min = avgs.reduce((m, x) => (x.v < m.v ? x : m), avgs[0] ?? { id: '', v: 0 });
   const winsMap = winsOf(picks);
   const winsByPerson: Record<string, string[]> = {};
-  for (const p of profiles) winsByPerson[p.person.id] = winsMap.get(p.person.id) ?? [];
+  const closeByPerson: Record<string, string[]> = {};
+  for (const p of profiles) {
+    const id = p.person.id;
+    winsByPerson[id] = winsMap.get(id) ?? [];
+    closeByPerson[id] = winsByPerson[id].length ? [] : picks.filter((pk) => pk.c.closeFor.includes(id)).map((pk) => pk.c.entity.name);
+  }
   return {
     meanScore: r3(meanScore),
     minPersonAvg: r3(min.v),
     minPersonId: min.id,
     equity: r3(1 - gini(avgs.map((a) => a.v))),
     winsByPerson,
-    peopleWithoutWin: profiles.filter((p) => !winsMap.has(p.person.id)).map((p) => p.person.id),
+    closeByPerson,
+    peopleWithoutExclusive: profiles.filter((p) => !winsMap.has(p.person.id)).map((p) => p.person.id),
+    peopleWithoutWin: profiles.filter((p) => !winsMap.has(p.person.id) && !closeByPerson[p.person.id].length).map((p) => p.person.id),
   };
 }
 
@@ -289,13 +296,13 @@ export function synthesizeStop(
   const ranked = ctx.profiles
     .map((p) => ({ p, a: c.a[p.person.id] }))
     .sort((x, y) => y.a - x.a);
-  const servers = ranked.filter((r) => c.winFor.includes(r.p.person.id) || r.a >= WIN_MIN + 0.05).slice(0, 4);
+  const servers = ranked.filter((r) => c.winFor.includes(r.p.person.id) || c.closeFor.includes(r.p.person.id) || r.a >= WIN_MIN + 0.05).slice(0, 4);
   const serves = servers.map(({ p, a }) => {
     const d = driverAnchors(p, c);
     const q = c.qloo[p.person.id];
     const link = d.names.length ? `echoes ${d.names.join(' & ')}` : 'fits their overall taste profile';
     const via = d.tags.length ? ` (shared signals: ${d.tags.join(', ')})` : '';
-    const win = c.winFor.includes(p.person.id) ? 'Personal win. ' : '';
+    const win = c.winFor.includes(p.person.id) ? 'Personal win. ' : c.closeFor.includes(p.person.id) ? 'Closest to theirs. ' : '';
     return {
       personId: p.person.id,
       name: p.person.name,

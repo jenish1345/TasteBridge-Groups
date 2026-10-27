@@ -40,7 +40,7 @@ export function scorecard(req: GroupRequest, plan: PlanResult, base: BaselineRes
 
   // people mentioned / served
   const namedBase = people.filter((p) => baseText.includes(p.name.toLowerCase())).length;
-  const winsQloo = people.length - plan.metrics.peopleWithoutWin.length;
+  const winsQloo = people.length - plan.metrics.peopleWithoutExclusive.length;
 
   // conflicts
   const conflicts = plan.profile.conflicts;
