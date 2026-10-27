@@ -18,6 +18,8 @@ import type {
   SlotId,
   Veto,
 } from '../types.js';
+import { isOpenAt } from './hours.js';
+import { SLOT_META } from './slots.js';
 import { AXES, AXIS_META, clamp, matchesAvoid, positionFromTexts, tagText, vibeToAxisNudge } from './taxonomy.js';
 
 export const WEIGHTS = { coverage: 0.5, minAffinity: 0.3, conflict: 0.2 } as const;
@@ -200,6 +202,11 @@ export function evaluate(c: Candidate, ctx: ScoringContext): Pick<ScoredCandidat
   let hardRejected: string | undefined;
   const budget = ctx.constraints.budget;
   if (budget && c.entity.priceLevel && c.entity.priceLevel > budget) hardRejected = `over budget (${'$'.repeat(c.entity.priceLevel)} > ${'$'.repeat(budget)})`;
+  if (!hardRejected && ctx.constraints.datetime && c.entity.hours) {
+    // never send people to a closed door: check the venue's hours at this stop's planned start time
+    const o = isOpenAt(c.entity.hours, ctx.constraints.datetime, SLOT_META[c.slot].startOffsetMin);
+    if (o.open === false) hardRejected = `closed at ${o.at} per Qloo's listed hours`;
+  }
   for (const v of ctx.constraints.vibes ?? []) {
     const nudge = vibeToAxisNudge(v);
     for (const a of AXES) {

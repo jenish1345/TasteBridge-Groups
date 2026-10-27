@@ -73,5 +73,22 @@ export const rebalanceHandler: Handler = wrap('POST', async (req) => {
   const session: SessionState = { ...s, request, rejected: s.rejected ?? {}, selection: s.selection ?? {} };
   const slot = typeof b.slot === 'string' ? (b.slot as any) : undefined;
   const r = rebalance(session, slot);
-  return { ok: true, itinerary: r.assembled.itinerary, metrics: r.assembled.metrics, warnings: r.assembled.warnings, session: r.session, rebalance: r.diff };
+  return { ok: true, itinerary: r.assembled.itinerary, metrics: r.assembled.metrics, audit: r.assembled.audit, warnings: r.assembled.warnings, session: r.session, rebalance: r.diff };
 });
+
+/**
+ * Streaming variant of /api/plan: newline-delimited JSON. Each line is
+ *   {"type":"trace","event":{t,phase,message}}  — as the agent works
+ *   {"type":"result","result":<PlanResult>}      — once, at the end
+ *   {"type":"error","error":"..."}               — on failure
+ */
+export async function streamPlan(body: unknown, emit: (line: unknown) => void): Promise<void> {
+  try {
+    const req = parseRequest(body);
+    const result = await runGroupAgent(req, { onEvent: (event) => emit({ type: 'trace', event }) });
+    emit({ type: 'result', result });
+  } catch (e) {
+    if (!(e instanceof UserError)) console.error('[api] stream error:', e);
+    emit({ type: 'error', error: e instanceof UserError ? e.message : 'Something went wrong while planning. Please try again.' });
+  }
+}

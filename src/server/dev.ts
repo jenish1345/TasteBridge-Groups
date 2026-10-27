@@ -46,6 +46,16 @@ export function createApp() {
   return createServer(async (req, res) => {
     const url = new URL(req.url ?? '/', 'http://localhost');
     try {
+      if (url.pathname === '/api/plan-stream' && req.method === 'POST') {
+        const ip = String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress ?? 'unknown').split(',')[0].trim();
+        if (!allow(ip, 60)) { res.writeHead(429, { 'content-type': 'application/json' }).end(JSON.stringify({ ok: false, error: 'Too many requests — please wait a minute.' })); return; }
+        let body: unknown;
+        try { body = await readBody(req); } catch (e) { res.writeHead(400, { 'content-type': 'application/json' }).end(JSON.stringify({ ok: false, error: (e as Error).message })); return; }
+        res.writeHead(200, { 'content-type': 'application/x-ndjson; charset=utf-8', 'cache-control': 'no-store, no-transform', 'x-accel-buffering': 'no' });
+        await h.streamPlan(body, (line) => res.write(JSON.stringify(line) + '\n'));
+        res.end();
+        return;
+      }
       const route = routes[url.pathname];
       if (route) {
         const ip = String(req.headers['x-forwarded-for'] ?? req.socket.remoteAddress ?? 'unknown').split(',')[0].trim();

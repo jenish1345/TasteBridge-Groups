@@ -16,6 +16,8 @@ TasteBridge started as a two-person "common ground" agent. That flow is preserve
 | **Group taste map** | Overlap / shared / unique tags per person and a conflict spectrum for 5 axes: loud↔quiet, spicy↔mild, nightlife↔family-friendly, experimental↔mainstream, expensive↔budget. |
 | **Taste Conflict Diplomacy** | Detects incompatible preferences and, instead of crowning one winner, bridges them (neutral venues) or alternates them across stops. Every person gets at least one **personal win**. |
 | **Itinerary with evidence** | Activity → food → drink/dessert → wind-down (+ an optional *Encore* if someone still lacks a win). Each stop shows **why it fits**, **who it serves**, **conflicts and how they're resolved**, and **the Qloo entities, tags and affinity signals used**. |
+| **Real-life checks** | Venues Qloo lists as **closed** at a stop's planned time (or permanently closed) are ruled out *per Qloo's listed hours*; stops show opening hours, website and phone when Qloo has them. |
+| **Shows its work** | Each stop lists the higher-scoring venues it **ruled out and why** (hard no, key-guest veto, budget, closed) and what a naive *highest-average-affinity* ranker would have picked instead. A plan-level **fairness audit** totals the difference. |
 | **Rebalance plan** | One click swaps the weakest stop (or any stop you pick) while preserving every personal win and keeping fairness within 3 points. |
 | **With vs Without Qloo** | Same request through a generic recommender and through the Qloo-grounded agent, with a scorecard. |
 | **MCP + CLI** | `plan_group_outing`, `rebalance_group_plan`, `find_common_ground`, `resolve_taste_anchors`; `tastebridge group / pair / resolve`. |
@@ -107,6 +109,22 @@ Dietary/accessibility needs are *verified* against Qloo tags when possible; unve
 
 **Rebalance:** replace one stop with the best feasible alternative such that nobody loses a personal win and mean fairness drops ≤ 0.03 (`mean score + 0.5·lowest person's average` is the objective). Repeated rebalances cycle through alternatives.
 
+## Evaluation (measured, not claimed)
+
+`npm run eval` plans 60 seeded random groups (2–8 people, random anchors, hard no's, key guests, three cities, budgets) in SAMPLE DATA mode and re-checks every chosen venue against the hard rules, independently of the selection code. `npm test` runs a 25-group version as a property test.
+
+| Metric (60 groups · 241 stops) | TasteBridge | Naive "highest average affinity" ranker |
+|---|---|---|
+| Groups where **everyone got a personal win** | **100%** | not tracked |
+| Hard-rule violations (hard no / key-guest veto / budget / vibe) | **0** | 20 stops (8.3%) |
+| (person, stop) pairs with < 40% fit | **2** | 8 |
+| Lowest person's fit, on stops where the naive pick was legal | **62.9%** | 61.9% |
+| Stops where fairness-aware scoring changed the pick | 45.6% | — |
+
+Be careful how you read this: the big, robust win is *rule-keeping and not leaving anyone behind* (and guaranteed wins). The average lowest-person fit improves only about a point — fairness scoring mostly reshuffles *who* is served rather than lifting everyone. Numbers are from fixtures, so they show the algorithm's behaviour, not Qloo's data quality. 
+
+**Live Qloo check** (`npm run eval -- --live --n=3`: only 3 groups / 12 stops, so treat it as a sanity check, not a benchmark): everyone got a personal win, 0 hard-rule violations, and a naive ranker would have broken a rule at 7 of 12 stops — mostly picking venues Qloo lists as closed at the planned time. On stops where the naive pick was legal, lowest-person fit was identical (77.1% vs 77.1%). Qloo's listed hours are sometimes wrong (e.g. well-known weekend venues listed as closed), which is why ruled-out reasons say "per Qloo's listed hours".
+
 ## Local setup
 
 ```bash
@@ -156,7 +174,10 @@ npm run cli -- resolve "Mad Max" "hot pot" "radiohed"
 | `POST /api/rebalance` | `{ session, slot? }` → `{ itinerary, metrics, session, rebalance:{removed, added, before, after, note} }` (stateless: the `session` from `/api/plan` is passed back) |
 | `POST /api/compare` | `GroupRequest` → `{ withQloo, withoutQloo, scorecard[] }` |
 | `POST /api/pair` | `{ a:{name,anchors[]}, b:{…}, city? }` → common ground across domains |
+| `POST /api/plan-stream` | same body as `/api/plan`; responds with **NDJSON**: `{type:"trace",event}` lines as the agent works, then one `{type:"result",result}` (or `{type:"error",error}`) — lets a UI show live progress during the 20–45 s cold run |
 | `GET /api/health`, `GET /api/demo` | mode / demo request |
+
+**Fields worth rendering:** each itinerary stop carries `why`, `serves[]`, `conflicts[]` (with resolutions), `evidence` (entity ids, tags, signals, per-person affinity), `ruledOut[]`, `vsNaive`, `alternatives[]`, and `place.openNote / website / phone`; the plan carries `profile` (taste map + conflicts), `metrics`, `audit` (fairness audit vs a naive ranker), `warnings`, `trace[]` and `session` (pass back to `/api/rebalance`).
 
 Errors are `{ ok:false, error }` with 4xx for bad input; internals and keys are never included. Public deployments are protected by a per-IP rate limiter so the demo can't exhaust the Qloo quota.
 

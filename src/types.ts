@@ -75,6 +75,11 @@ export interface QlooEntity {
   country?: string;
   rating?: number;
   image?: string;
+  website?: string;
+  phone?: string;
+  /** weekday -> [open, close] minute ranges (see core/hours.ts) */
+  hours?: Record<string, [number, number][]>;
+  permanentlyClosed?: boolean;
   /** Qloo affinity vs. the request signal, 0..1 */
   affinity?: number;
   /** Raw explainability payload when Qloo returns one */
@@ -225,6 +230,10 @@ export interface ItineraryStop {
     rating?: number;
     image?: string;
     description?: string;
+    website?: string;
+    phone?: string;
+    /** e.g. "Open at 8:00 PM, until 11:00 PM" — only when Qloo has hours for that day */
+    openNote?: string;
   };
   time?: string;
   score: ScoreBreakdown;
@@ -242,6 +251,26 @@ export interface ItineraryStop {
   };
   warnings: string[];
   alternatives: { id: string; name: string; score: number }[];
+  /** Higher-ranked venues that were excluded, and why (vetoes / budget / closed) */
+  ruledOut: { name: string; score: number; reason: string }[];
+  /** What a plain "highest average affinity" ranker would have picked here, and what that would have cost */
+  vsNaive?: { name: string; meanAffinity: number; minAffinity: number; weakest: string; ourMean: number; ourMin: number; vetoed?: string };
+}
+
+export interface PlanAudit {
+  stops: number;
+  /** stops where fairness-aware scoring chose differently from a naive average-affinity ranker */
+  stopsChanged: number;
+  /** naive picks that broke a hard no, key-guest veto, budget, vibe or opening hours */
+  naiveViolations: number;
+  /** stops where the naive pick broke no rule — the only fair place to compare fit */
+  comparableStops: number;
+  /** mean lowest-person affinity over the comparable stops */
+  avgMinAffinityOurs: number;
+  avgMinAffinityNaive: number;
+  /** number of (person, stop) pairs below 0.40 affinity */
+  poorFitsOurs: number;
+  poorFitsNaive: number;
 }
 
 export interface PlanMetrics {
@@ -280,6 +309,7 @@ export interface PlanResult {
   profile: GroupProfile;
   itinerary: ItineraryStop[];
   metrics: PlanMetrics;
+  audit: PlanAudit;
   warnings: string[];
   unresolved: { personId: string; anchor: string }[];
   trace: TraceEvent[];

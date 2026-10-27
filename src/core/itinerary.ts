@@ -6,10 +6,12 @@ import type {
   Conflict,
   ItineraryStop,
   PersonProfile,
+  PlanAudit,
   PlanMetrics,
   ScoredCandidate,
   SlotId,
 } from '../types.js';
+import { isOpenAt } from './hours.js';
 import { SLOT_META, SLOT_ORDER } from './slots.js';
 import { isViable, scoreSlot, type ScoringContext, WIN_MIN } from './scoring.js';
 import { AXIS_META, tagText, positionFromTexts } from './taxonomy.js';
@@ -237,6 +239,39 @@ function driverAnchors(profile: PersonProfile, c: ScoredCandidate): { names: str
   return { names: scored.slice(0, 2).map((x) => x.name), tags: [...new Set(scored.flatMap((x) => x.shared))].slice(0, 3) };
 }
 
+const mean = (xs: number[]) => (xs.length ? xs.reduce((a, b) => a + b, 0) / xs.length : 0);
+const meanA = (c: ScoredCandidate) => mean(Object.values(c.a));
+const minA = (c: ScoredCandidate) => Math.min(...Object.values(c.a));
+
+/** What an "average affinity" ranker would pick: highest mean individual affinity, ignoring vetoes and conflicts. */
+export function naivePick(list: ScoredCandidate[]): ScoredCandidate | undefined {
+  return [...list].sort((x, y) => meanA(y) - meanA(x) || (y.entity.popularity ?? 0) - (x.entity.popularity ?? 0))[0];
+}
+
+const brokeRule = (c: ScoredCandidate): string | undefined => c.vetoes[0]?.reason ?? c.hardRejected;
+
+export function planAudit(build: PlanBuild, picks: Pick[], profiles: PersonProfile[]): PlanAudit {
+  let changed = 0, violations = 0, comparable = 0, minO = 0, minN = 0, poorO = 0, poorN = 0;
+  for (const pk of picks) {
+    const nv = naivePick(build.scored[pk.c.slot] ?? []) ?? pk.c;
+    if (nv.entity.id !== pk.c.entity.id) changed++;
+    if (brokeRule(nv)) violations++;
+    else { comparable++; minO += minA(pk.c); minN += minA(nv); } // compare fit only where the naive pick was itself legal
+    for (const p of profiles) {
+      if ((pk.c.a[p.person.id] ?? 1) < 0.4) poorO++;
+      if ((nv.a[p.person.id] ?? 1) < 0.4) poorN++;
+    }
+  }
+  const n = comparable || 1;
+  return { stops: picks.length, stopsChanged: changed, naiveViolations: violations, comparableStops: comparable, avgMinAffinityOurs: r3(minO / n), avgMinAffinityNaive: r3(minN / n), poorFitsOurs: poorO, poorFitsNaive: poorN };
+}
+
+function openNote(e: { hours?: Record<string, [number, number][]> }, datetime: string | undefined, key: StopKey): string | undefined {
+  const o = isOpenAt(e.hours, datetime, key === 'encore' ? 360 : SLOT_META[key].startOffsetMin);
+  if (o.open === undefined) return undefined;
+  return o.open ? `Open at ${o.at}, until ${o.closesAt}` : `Closed at ${o.at}`;
+}
+
 export function synthesizeStop(
   pick: Pick,
   all: Pick[],
@@ -343,6 +378,9 @@ export function synthesizeStop(
       rating: e.rating,
       image: e.image,
       description: e.description,
+      website: e.website,
+      phone: e.phone,
+      openNote: openNote(e, ctx.constraints.datetime, slotKey),
     },
     time: slotLabelTime,
     score: b,
@@ -359,6 +397,15 @@ export function synthesizeStop(
       explain: e.explain,
     },
     warnings,
+    ruledOut: (build.scored[c.slot] ?? [])
+      .filter((x) => x.entity.id !== e.id && !isViable(x) && x.breakdown.score >= b.score - 0.1)
+      .slice(0, 3)
+      .map((x) => ({ name: x.entity.name, score: x.breakdown.score, reason: brokeRule(x) ?? 'ruled out' })),
+    vsNaive: (() => {
+      const nv = naivePick(build.scored[c.slot] ?? []);
+      if (!nv || nv.entity.id === e.id) return undefined;
+      return { name: nv.entity.name, meanAffinity: r3(meanA(nv)), minAffinity: r3(minA(nv)), weakest: nm(nv.breakdown.weakestPersonId), ourMean: r3(meanA(c)), ourMin: r3(minA(c)), vetoed: brokeRule(nv) };
+    })(),
     alternatives: (build.feasible[slotKey === 'encore' ? 'drink' : slotKey] ?? [])
       .filter((x) => x.entity.id !== e.id && !all.some((o) => o.c.entity.id === x.entity.id))
       .slice(0, 3)

@@ -26,11 +26,16 @@ export function formatPlan(r: PlanResult, opts: { evidence?: boolean; trace?: bo
     for (const x of s.serves) out.push(`      Serves ${x.name}: ${x.reason}`);
     for (const c of s.conflicts) out.push(`      Conflict: ${c.text}\n        → ${c.resolution}`);
     for (const w of s.warnings) out.push(`      ⚠ ${w}`);
+    if (s.place.openNote) out.push(`      Hours: ${s.place.openNote}`);
+    for (const x of s.ruledOut) out.push(`      Ruled out: ${x.name} (${pct(x.score)}) — ${x.reason}`);
+    if (s.vsNaive) out.push(`      Naive pick would be ${s.vsNaive.name} (lowest fit ${pct(s.vsNaive.minAffinity)} for ${s.vsNaive.weakest}${s.vsNaive.vetoed ? `; ${s.vsNaive.vetoed}` : ''}) vs ${pct(s.vsNaive.ourMin)} here.`);
     if (opts.evidence !== false) {
       out.push(`      Evidence: ${s.evidence.source} · venue ${s.evidence.qlooEntityIds[0]} · tags: ${s.evidence.candidateTags.map((t) => t.name).join(', ')}`);
       if (s.evidence.signals.length) out.push(`        signals: ${s.evidence.signals.map((x) => `${who[x.personId]}→${x.anchor}`).join('; ')}`);
     }
   }
+  const a = r.audit;
+  if (a) out.push('', `Fairness audit vs a naive "highest average affinity" ranker: it would have chosen differently at ${a.stopsChanged}/${a.stops} stops, broken a hard rule at ${a.naiveViolations}, and left people below 40% fit ${a.poorFitsNaive}× (this plan: ${a.poorFitsOurs}×); on the ${a.comparableStops} stops where its pick was legal, lowest-person fit is ${pct(a.avgMinAffinityNaive)} (naive) vs ${pct(a.avgMinAffinityOurs)} (this plan).`);
   out.push('', 'Personal wins:');
   for (const [id, stops] of Object.entries(r.metrics.winsByPerson)) out.push(`  - ${who[id]}: ${stops.length ? stops.join(', ') : '(none yet)'}`);
   if (r.warnings.length) out.push('', 'Warnings:', ...r.warnings.map((w) => `  - ${w}`));

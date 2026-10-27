@@ -9,6 +9,7 @@ import { scoreSlot } from '../core/scoring.js';
 import { contextOf, selectionOf } from '../core/plan.js';
 import { inCity, pickPlaceTag, placeMismatch, SLOT_META, SLOT_ORDER, slotsOf } from '../core/slots.js';
 import { QlooAuthError } from '../qloo/live.js';
+import { KNOWN_PLACE_TAGS } from '../qloo/known-tags.js';
 import { getProvider } from '../qloo/provider.js';
 import { SampleQlooProvider } from '../qloo/sample.js';
 import { SAMPLE_CITIES } from '../qloo/fixtures.js';
@@ -41,6 +42,8 @@ const SCORE_BATCH = 50;
 export interface AgentOptions {
   qloo?: QlooProvider;
   llm?: Llm | null;
+  /** Called for every trace event as it happens (used by the streaming endpoint). */
+  onEvent?: (e: TraceEvent) => void;
 }
 
 interface Params {
@@ -55,20 +58,24 @@ export async function runGroupAgent(req: GroupRequest, opts: AgentOptions = {}):
   const llm = opts.llm === null ? undefined : (opts.llm ?? getLlm(cfg));
   const qloo = opts.qloo ?? getProvider(cfg);
   try {
-    return await run(req, qloo, llm);
+    return await run(req, qloo, llm, undefined, opts.onEvent);
   } catch (err) {
     if (err instanceof QlooAuthError) {
-      const r = await run(req, new SampleQlooProvider(), llm, `Qloo rejected the API key (${err.message}). Showing SAMPLE DATA instead — fix QLOO_API_KEY to go live.`);
+      const r = await run(req, new SampleQlooProvider(), llm, `Qloo rejected the API key (${err.message}). Showing SAMPLE DATA instead — fix QLOO_API_KEY to go live.`, opts.onEvent);
       return r;
     }
     throw err;
   }
 }
 
-async function run(req: GroupRequest, qloo: QlooProvider, llm: Llm | undefined, forcedBanner?: string): Promise<PlanResult> {
+async function run(req: GroupRequest, qloo: QlooProvider, llm: Llm | undefined, forcedBanner?: string, onEvent?: (e: TraceEvent) => void): Promise<PlanResult> {
   const t0 = Date.now();
   const trace: TraceEvent[] = [];
-  const log = (phase: TraceEvent['phase'], message: string, data?: unknown) => trace.push({ t: Date.now() - t0, phase, message, data });
+  const log = (phase: TraceEvent['phase'], message: string, data?: unknown) => {
+    const ev: TraceEvent = { t: Date.now() - t0, phase, message, data };
+    trace.push(ev);
+    try { onEvent?.({ ...ev, data: undefined }); } catch { /* a broken stream must not break planning */ }
+  };
   const statsBefore = qloo.stats();
   const warnings: string[] = [];
   const c = req.constraints;
@@ -125,13 +132,15 @@ async function run(req: GroupRequest, qloo: QlooProvider, llm: Llm | undefined, 
       const ids: string[] = [];
       const hits = await Promise.all(
         SLOT_META[s].terms.map(async (term) => {
+          const known = qloo.mode === 'live' ? KNOWN_PLACE_TAGS[term] : undefined;
+          if (known) return { id: known, name: term };
           const tags = await qloo.searchTags(term, { take: 6 });
           return pickPlaceTag(term, tags);
         }),
       );
       for (const h of hits) if (h && !ids.includes(h.id)) ids.push(h.id);
       slotTags[s] = ids;
-      log('act', `${SLOT_META[s].label}: mapped ${SLOT_META[s].terms.length} venue terms to ${ids.length} Qloo tags`, { tagIds: ids });
+      log('act', `${SLOT_META[s].label}: mapped ${SLOT_META[s].terms.length} venue terms to ${ids.length} Qloo tags${qloo.mode === 'live' ? ' (verified IDs, live lookup for unknowns)' : ''}`, { tagIds: ids });
     }),
   );
 
@@ -170,7 +179,7 @@ async function run(req: GroupRequest, qloo: QlooProvider, llm: Llm | undefined, 
       explain,
     });
 
-  const eligible = (slot: SlotId, es: QlooEntity[]) => es.filter((e) => e.type === 'urn:entity:place' && inCity(e, c.city) && slotsOf(e).includes(slot));
+  const eligible = (slot: SlotId, es: QlooEntity[]) => es.filter((e) => e.type === 'urn:entity:place' && !e.permanentlyClosed && inCity(e, c.city) && slotsOf(e).includes(slot));
   const offCity = (es: QlooEntity[]) => es.filter((e) => e.type === 'urn:entity:place' && !inCity(e, c.city));
 
   const usedParams: Record<string, Params> = {};
@@ -369,6 +378,7 @@ async function run(req: GroupRequest, qloo: QlooProvider, llm: Llm | undefined, 
     profile: group,
     itinerary,
     metrics: built.metrics,
+    audit: built.audit,
     warnings: [...warnings, ...built.warnings],
     unresolved,
     trace,

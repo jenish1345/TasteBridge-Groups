@@ -62,3 +62,25 @@ describe('HTTP handlers', () => {
     expect(allow('1.2.3.4', 3, 60_000, t + 61_000)).toBe(true);
   });
 });
+
+describe('streaming endpoint', () => {
+  it('emits trace events as they happen, then exactly one result', async () => {
+    const { streamPlan } = await import('../src/server/handlers.js');
+    const d: any = (await demo({ method: 'GET' })).body;
+    const lines: any[] = [];
+    await streamPlan(d.request, (l) => lines.push(l));
+    const types = lines.map((l) => l.type);
+    expect(types.filter((t) => t === 'result')).toHaveLength(1);
+    expect(types[types.length - 1]).toBe('result');
+    expect(types.filter((t) => t === 'trace').length).toBeGreaterThan(10);
+    expect(lines[0].event.phase).toBe('plan');
+    expect(lines.at(-1).result.itinerary.length).toBeGreaterThanOrEqual(4);
+  });
+  it('reports validation errors as an error line, not an exception', async () => {
+    const { streamPlan } = await import('../src/server/handlers.js');
+    const lines: any[] = [];
+    await streamPlan({ people: [], constraints: {} }, (l) => lines.push(l));
+    expect(lines).toHaveLength(1);
+    expect(lines[0].type).toBe('error');
+  });
+});

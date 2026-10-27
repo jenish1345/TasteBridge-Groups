@@ -3,6 +3,7 @@
 
 import type { Config } from '../config.js';
 import type { InsightsParams, InsightsResult, ProviderStats, QlooEntity, QlooProvider, QlooTag } from '../types.js';
+import { parseHours } from '../core/hours.js';
 import { TtlCache } from './cache.js';
 import { Limiter, sleep } from './limiter.js';
 
@@ -64,6 +65,10 @@ export function normalizeEntity(raw: any, source: QlooEntity['source'] = 'qloo-l
     country: typeof geocode.country === 'string' ? geocode.country : undefined,
     rating: typeof props.business_rating === 'number' ? Math.round(props.business_rating * 10) / 10 : undefined,
     image: typeof img === 'string' ? img : img?.url,
+    website: typeof props.website === 'string' ? props.website : undefined,
+    phone: typeof props.phone === 'string' ? props.phone : undefined,
+    hours: parseHours(props.hours),
+    permanentlyClosed: props.is_closed === true ? true : undefined,
     affinity,
     explain: Array.isArray(ex) ? ex.slice(0, 8) : undefined,
     source,

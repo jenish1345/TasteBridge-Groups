@@ -1,8 +1,8 @@
 // Pure plan assembly + rebalance over a SessionState (no network). Used by the agent, the API and tests.
 
-import type { ItineraryStop, PlanMetrics, RebalanceDiff, ScoredCandidate, SessionState, SlotId } from '../types.js';
+import type { ItineraryStop, PlanAudit, PlanMetrics, RebalanceDiff, ScoredCandidate, SessionState, SlotId } from '../types.js';
 import { detectConflicts } from './conflicts.js';
-import { buildPlan, planMetrics, synthesize, winsOf, type Pick, type PlanBuild, type StopKey } from './itinerary.js';
+import { buildPlan, planAudit, planMetrics, synthesize, winsOf, type Pick, type PlanBuild, type StopKey } from './itinerary.js';
 import type { ScoringContext } from './scoring.js';
 import { SLOT_ORDER } from './slots.js';
 
@@ -15,6 +15,7 @@ export interface Assembled {
   picks: Pick[];
   itinerary: ItineraryStop[];
   metrics: PlanMetrics;
+  audit: PlanAudit;
   warnings: string[];
 }
 
@@ -42,7 +43,7 @@ export function assemble(s: SessionState, useSelection = false): Assembled {
     if (restored.length) picks = restored;
   }
   const itinerary = synthesize({ ...build, picks }, ctx, s.request.constraints.datetime);
-  return { build: { ...build, picks }, picks, itinerary, metrics: planMetrics(picks, s.profiles), warnings: build.warnings };
+  return { build: { ...build, picks }, picks, itinerary, metrics: planMetrics(picks, s.profiles), audit: planAudit({ ...build, picks }, picks, s.profiles), warnings: build.warnings };
 }
 
 export function selectionOf(picks: Pick[]): Record<string, string> {
