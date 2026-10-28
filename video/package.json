@@ -1,0 +1,8 @@
+{
+  "name": "tastebridge-video",
+  "private": true,
+  "type": "module",
+  "description": "Scripts that render the TasteBridge Groups demo film (frames via Chrome, audio via NumPy, mux via ffmpeg).",
+  "scripts": { "capture": "node capture-footage.mjs", "audio": "node dump-cues.mjs && python3 audio.py", "render": "node render.mjs", "all": "npm run capture && npm run audio && npm run render" },
+  "dependencies": { "puppeteer-core": "^22.15.0" }
+}
