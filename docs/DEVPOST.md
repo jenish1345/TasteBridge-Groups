@@ -7,7 +7,7 @@ Copy each section into the matching Devpost field. Everything below is stated as
 - [x] Working application that integrates the Qloo API (live `/search`, `/v2/tags`, `/v2/insights`)
 - [x] Public code repository: https://github.com/jenish1345/TasteBridge-Groups
 - [x] Open-source license: MIT (`LICENSE`)
-- [ ] **Live, externally hosted demo URL** (deploy with the button in the README, then paste the URL below)
+- [x] Live, externally hosted demo URL: https://tastebridge-groups.onrender.com (Render free tier: the first request after idle takes about a minute to wake)
 - [ ] Demo video (use `docs/DEMO_SCRIPT.md`; confirm on the Devpost page whether it is required)
 - [ ] Confirm the final rules and criteria on https://qloo.devpost.com/ (the page blocks automated reading)
 
@@ -76,6 +76,6 @@ TypeScript, Node.js, Qloo Taste AI API, Model Context Protocol, vanilla JavaScri
 
 ## Try it
 
-- Live demo: PASTE-URL-HERE
+- Live demo: https://tastebridge-groups.onrender.com (free tier sleeps when idle; the first request can take about a minute)
 - Source: https://github.com/jenish1345/TasteBridge-Groups
 - Run it yourself: `npm install && npm start` (SAMPLE DATA without a key; add `QLOO_API_KEY` for live Qloo)

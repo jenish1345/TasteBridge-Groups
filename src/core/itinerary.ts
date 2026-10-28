@@ -120,31 +120,36 @@ export function buildPlan(
     }
   }
 
-  // 2) personal-win guarantee via bounded swaps
+  // 2) personal-win guarantee via bounded swaps. The guest of honor counts triple: if one person can't have a win, it isn't them.
   const personIds = ctx.profiles.map((p) => p.person.id);
-  for (let iter = 0; iter < 8; iter++) {
-    const wins = winsOf(picks);
-    const missing = personIds.filter((id) => !wins.has(id));
-    if (!missing.length) break;
-    let best: { idx: number; c: ScoredCandidate; gain: number } | undefined;
-    picks.forEach((pk, idx) => {
-      if (pk.key === 'encore') return;
-      for (const c of feasible[pk.key] ?? []) {
-        if (c.entity.id === pk.c.entity.id || (used.has(c.entity.id))) continue;
-        const gained = c.winFor.filter((id) => missing.includes(id)).length;
-        if (!gained) continue;
-        const loss = pk.c.breakdown.score - c.breakdown.score;
-        if (loss > SWAP_TOLERANCE || c.breakdown.minAffinity < SWAP_MIN_AFFINITY) continue;
-        const lost = pk.c.winFor.filter((id) => !c.winFor.includes(id) && picks.every((o, j) => j === idx || !o.c.winFor.includes(id))).length;
-        const gain = gained - lost - Math.max(0, loss) * 2;
-        if (gained - lost > 0 && (!best || gain > best.gain)) best = { idx, c, gain };
-      }
-    });
-    if (!best) break;
-    used.delete(picks[best.idx].c.entity.id);
-    used.add(best.c.entity.id);
-    picks[best.idx] = { key: picks[best.idx].key, c: best.c };
-  }
+  const weight = (id: string) => (ctx.profiles.find((p) => p.person.id === id)?.person.isKey ? 3 : 1);
+  const improveWins = () => {
+    for (let iter = 0; iter < 8; iter++) {
+      const wins = winsOf(picks);
+      const missing = personIds.filter((id) => !wins.has(id));
+      if (!missing.length) break;
+      let best: { idx: number; c: ScoredCandidate; gain: number } | undefined;
+      picks.forEach((pk, idx) => {
+        if (pk.key === 'encore') return;
+        for (const c of feasible[pk.key] ?? []) {
+          if (c.entity.id === pk.c.entity.id || used.has(c.entity.id)) continue;
+          const gainedIds = c.winFor.filter((id) => missing.includes(id));
+          if (!gainedIds.length) continue;
+          const loss = pk.c.breakdown.score - c.breakdown.score;
+          if (loss > SWAP_TOLERANCE || c.breakdown.minAffinity < SWAP_MIN_AFFINITY) continue;
+          const lostIds = pk.c.winFor.filter((id) => !c.winFor.includes(id) && picks.every((o, j) => j === idx || !o.c.winFor.includes(id)));
+          const net = gainedIds.reduce((a, id) => a + weight(id), 0) - lostIds.reduce((a, id) => a + weight(id), 0);
+          const gain = net - Math.max(0, loss) * 2;
+          if (net > 0 && (!best || gain > best.gain)) best = { idx, c, gain };
+        }
+      });
+      if (!best) break;
+      used.delete(picks[best.idx].c.entity.id);
+      used.add(best.c.entity.id);
+      picks[best.idx] = { key: picks[best.idx].key, c: best.c };
+    }
+  };
+  improveWins();
 
   // 3) still missing people → one "Encore" stop that wins for as many of them as possible
   {
@@ -156,7 +161,7 @@ export function buildPlan(
         .filter((c) => !used.has(c.entity.id) && c.breakdown.minAffinity >= SWAP_MIN_AFFINITY);
       let best: { c: ScoredCandidate; n: number } | undefined;
       for (const c of pool) {
-        const n = c.winFor.filter((id) => missing.includes(id)).length;
+        const n = c.winFor.filter((id) => missing.includes(id)).reduce((a, id) => a + weight(id), 0);
         if (n && (!best || n > best.n || (n === best.n && c.breakdown.score > best.c.breakdown.score))) best = { c, n };
       }
       if (best) {
@@ -164,9 +169,12 @@ export function buildPlan(
         used.add(best.c.entity.id);
       }
     }
+    // the Encore can make an earlier stop's win redundant, which frees that stop to be swapped for someone else's win
+    improveWins();
     const after = winsOf(picks);
-    const still = ctx.profiles.filter((p) => !after.has(p.person.id));
-    if (still.length) warnings.push(`No personal win found for ${still.map((p) => p.person.name).join(', ')} — consider adding more taste anchors for them.`);
+    // only warn when someone has neither an exclusive win nor a closest fit; a closest fit is shown, not apologised for
+    const still = ctx.profiles.filter((p) => !after.has(p.person.id) && !picks.some((pk) => pk.c.closeFor.includes(p.person.id)));
+    if (still.length) warnings.push(`No stop fits ${still.map((p) => p.person.name).join(', ')} well yet. Adding a few more taste anchors for them would help.`);
   }
 
   return { scored, feasible, picks, warnings };
