@@ -2,6 +2,8 @@
 
 **The taste diplomat for real-life plans.** Give TasteBridge 3–8 people's taste anchors and it uses the [Qloo Taste AI API](https://docs.qloo.com/) to map where your tastes overlap and clash, then builds a fair, multi-stop itinerary where *everyone* gets a personal win — with the Qloo evidence behind every pick.
 
+[![Deploy to Render](https://render.com/images/deploy-to-render-button.svg)](https://render.com/deploy?repo=https://github.com/jenish1345/TasteBridge-Groups)
+
 > **Live demo:** `https://YOUR-DEPLOYMENT-URL` &nbsp;·&nbsp; **Demo video:** `https://YOUR-VIDEO-URL` &nbsp;·&nbsp; Built for the [Qloo Agentic Hackathon](https://qloo.devpost.com/)
 
 TasteBridge started as a two-person "common ground" agent. That flow is preserved (`pair` in the CLI/API, `find_common_ground` in MCP, the *Just two of you* tab) and now runs on the same engine as group planning.
